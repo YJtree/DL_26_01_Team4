@@ -15,7 +15,7 @@ client_secret = os.environ.get("NAVER_CLIENT_SECRET")
 
 # 키가 제대로 불러와졌는지 안전 장치 추가
 if not client_id or not client_secret:
-    raise ValueError(".env 파일에 API 키가 설정되지 않았어.")
+    raise ValueError(".env 파일에 API 키가 설정되지 않음.")
 
 # 2. 다중 검색어 설정
 search_keywords = [
