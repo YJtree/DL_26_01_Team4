@@ -23,6 +23,21 @@ def run_batch_sentence_labeling():
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     model = AutoModelForSequenceClassification.from_pretrained(model_path)
     
+# [수정 시작] 5개 클래스(0~4) 중 2번 인덱스를 제거하고 4개 클래스로 재매핑
+    with torch.no_grad():
+        # 기존 가중치 저장
+        old_weights = model.classifier.out_proj.weight.clone()
+        old_bias = model.classifier.out_proj.bias.clone()
+        
+        # 2번 인덱스(3번 라벨)를 제외한 나머지 인덱스 리스트
+        new_indices = [0, 1, 3, 4]
+        
+        # 새로운 텐서 생성
+        model.classifier.out_proj.weight = torch.nn.Parameter(old_weights[new_indices])
+        model.classifier.out_proj.bias = torch.nn.Parameter(old_bias[new_indices])
+        model.config.num_labels = 4
+    # [수정 끝]
+
     # GPU 가용 여부 확인 및 할당
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -39,9 +54,8 @@ def run_batch_sentence_labeling():
     label_map = {
         0: "1번 (고즈넉/사색)",
         1: "2번 (레트로/빈티지)",
-        2: "3번 (찐로컬/현지인)",
-        3: "4번 (청량/애니메이션)",
-        4: "5번 (아기자기/소박)"
+        2: "4번 (청량/애니메이션)",
+        3: "5번 (아기자기/소박)"
     }
 
     print(f"3. 총 {len(texts)}개 문장에 대한 AI 배치 추론 시작 (사용 장비: {device})...")
