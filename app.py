@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import re
 
-from place_recommend import recommend_places
+from use_kr_sbert import recommend_places
 
 app = Flask(__name__)
 
@@ -14,12 +14,8 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 REGION_FILE = os.path.join(DATA_DIR, "region_descriptions.csv")
 PLACE_FILE = os.path.join(DATA_DIR, "place_descriptions.csv")
 
-
+# 라벨명 정리 : 예: '2번 (레트로/빈티지)' → '레트로/빈티지'
 def clean_label(label):
-    """
-    '2번 (레트로/빈티지)' 형태의 라벨에서
-    괄호 안의 '레트로/빈티지'만 추출하는 함수
-    """
     label = str(label)
 
     match = re.search(r"\((.*?)\)", label)
@@ -29,18 +25,30 @@ def clean_label(label):
 
     return label
 
+# 4개 분위기 라벨 컬럼 정의
+label_columns = {
+    "label_1번 (고즈넉/사색)_ratio": "1번 (고즈넉/사색)",
+    "label_2번 (레트로/빈티지)_ratio": "2번 (레트로/빈티지)",
+    "label_4번 (청량/애니메이션)_ratio": "4번 (청량/바다)",
+    "label_5번 (아기자기/소박)_ratio": "5번 (아기자기/소박)"
+}
 
+# 지역별 분위기 태그는 place_descriptions.csv의 top1/top2 라벨을 기준으로 자동 생성
+# 지역 데이터 생성 : 전체 평균보다 해당 지역에서 더 두드러지는 라벨을 지역 태그로 사용
 def load_region_data():
-    """
-    region_descriptions.csv와 place_descriptions.csv를 읽어서
-    첫 화면에 보여줄 지역 데이터를 생성하는 함수
-
-    지역명, 지역 설명문은 region_descriptions.csv에서 가져오고,
-    지역별 분위기 태그는 place_descriptions.csv의 top1/top2 라벨을 기준으로 자동 생성함.
-    """
 
     region_df = pd.read_csv(REGION_FILE)
     place_df = pd.read_csv(PLACE_FILE)
+
+    # 4개 라벨 비율 컬럼을 숫자형으로 변환
+    for column in label_columns.keys():
+        place_df[column] = pd.to_numeric(
+            place_df[column],
+            errors="coerce"
+        ).fillna(0)
+
+    # 전체 장소 기준 라벨 평균
+    overall_means = place_df[list(label_columns.keys())].mean()
 
     regions = []
 
@@ -50,25 +58,46 @@ def load_region_data():
         # 해당 지역의 장소 데이터만 필터링
         city_places = place_df[place_df["city"] == city]
 
-        label_scores = {}
+        if city_places.empty:
+            tags = []
+        else:
+            # 해당 지역의 라벨 평균
+            city_means = city_places[list(label_columns.keys())].mean()
 
-        # 해당 지역에서 많이 등장하는 분위기 라벨을 태그로 사용
-        for _, place_row in city_places.iterrows():
-            top1_label = clean_label(place_row["top1_label"])
-            top2_label = clean_label(place_row["top2_label"])
+            distinct_scores = {}
 
-            top1_ratio = float(place_row["top1_ratio"])
-            top2_ratio = float(place_row["top2_ratio"])
+            for column_name, label_name in label_columns.items():
+                city_average = city_means[column_name]
+                overall_average = overall_means[column_name]
 
-            label_scores[top1_label] = label_scores.get(top1_label, 0) + top1_ratio
-            label_scores[top2_label] = label_scores.get(top2_label, 0) + top2_ratio * 0.7
+                # 전체 평균보다 얼마나 더 높은지 계산
+                distinct_score = city_average - overall_average
 
-        # 점수가 높은 라벨 3개만 태그로 사용
-        tags = sorted(
-            label_scores,
-            key=label_scores.get,
-            reverse=True
-        )[:3]
+                distinct_scores[clean_label(label_name)] = distinct_score
+
+            # 전체 평균보다 높은 라벨만 우선 사용
+            positive_tags = [
+                label
+                for label, score in sorted(
+                    distinct_scores.items(),
+                    key=lambda item: item[1],
+                    reverse=True
+                )
+                if score > 0
+            ]
+
+            # 너무 적게 나오면, 그래도 차이가 큰 순서대로 보충
+            if len(positive_tags) < 2:
+                tags = [
+                    label
+                    for label, score in sorted(
+                        distinct_scores.items(),
+                        key=lambda item: item[1],
+                        reverse=True
+                    )
+                ][:2]
+            else:
+                tags = positive_tags[:3]
 
         regions.append({
             "city": city,
@@ -81,17 +110,15 @@ def load_region_data():
 
 @app.route("/")
 def index():
-    """
-    메인 페이지를 보여주는 라우트
-    """
+
+    # 메인 페이지 보여주기
     return render_template("index.html")
 
 
 @app.route("/api/regions")
 def api_regions():
-    """
-    프론트엔드에서 첫 화면 지역 카드 데이터를 요청할 때 사용
-    """
+
+    # 프론트엔드에서 첫 화면 지역 카드 데이터를 요청할 때 사용
     regions = load_region_data()
 
     return jsonify({
@@ -101,11 +128,9 @@ def api_regions():
 
 @app.route("/api/recommend", methods=["POST"])
 def api_recommend():
-    """
-    프론트엔드에서 사용자가 선택한 지역과 검색어를 보내면
-    해당 지역 안에서 Top3 장소를 추천해서 반환
-    """
-    data = request.get_json()
+
+    # 사용자가 선택한 지역과 검색어를 보내면 해당 지역 안에서 Top3 장소를 추천해서 반환
+    data = request.get_json() or {}
 
     city = data.get("city")
     query = data.get("query")
