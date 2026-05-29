@@ -48,7 +48,7 @@ label_columns = {
 label_search_texts = {
     "label_1번 (고즈넉/사색)_ratio": "고즈넉하고 조용한 분위기, 차분한 산책, 사색하기 좋은 장소",
     "label_2번 (레트로/빈티지)_ratio": "레트로 감성, 빈티지한 거리, 전통적인 분위기, 오래된 공간",
-    "label_4번 (청량/바다)_ratio": "청량한 풍경, 맑은 하늘, 바다, 애니메이션 같은 밝은 분위기",
+    "label_4번 (청량/애니메이션)_ratio": "청량한 풍경, 맑은 하늘, 바다, 애니메이션 같은 밝은 분위기",
     "label_5번 (아기자기/소박)_ratio": "아기자기하고 귀여운 분위기, 소박한 감성, 작은 골목과 감성적인 장소"
 }
 
@@ -94,21 +94,39 @@ def make_search_text(row):
 
     return search_text
 
+# 라벨별 사용자 친화적 설명 문장
+label_reason_phrases = {
+    "고즈넉/사색": "조용하고 차분한 분위기가 두드러져, 천천히 머물거나 여유롭게 둘러보기 좋습니다.",
+    "레트로/빈티지": "오래된 거리와 전통적인 감성이 느껴져, 로컬한 분위기를 즐기기 좋습니다.",
+    "청량/바다": "맑고 시원한 풍경이 느껴져, 산책하거나 가볍게 쉬어가기 좋습니다.",
+    "청량/애니메이션": "맑고 시원한 풍경이 느껴져, 산책하거나 가볍게 쉬어가기 좋습니다.",
+    "아기자기/소박": "아기자기하고 소박한 분위기가 있어, 편안하고 감성적인 시간을 보내기 좋습니다."
+}
+
 # 추천 이유 문장을 만드는 함수
 def make_recommend_reason(row, user_query):
 
     place_name = row["place_name"]
     place_type = row["place"]
 
-
     top1_label = clean_label(row["top1_label"])
     top2_label = clean_label(row["top2_label"])
 
+    top1_reason = label_reason_phrases.get(
+        top1_label,
+        f"{top1_label} 분위기가 두드러지는 장소입니다."
+    )
+
+    top2_reason = label_reason_phrases.get(
+        top2_label,
+        f"{top2_label} 분위기도 함께 느껴지는 장소입니다."
+    )
+
     reason = (
-    f"'{place_name}'은/는 사용자가 찾은 '{user_query}' 분위기와 잘 어울리는 {place_type}입니다.\n"
-    f"특히 '{top1_label}' 분위기가 두드러지고,\n"
-    f"'{top2_label}' 분위기도 함께 나타나 선택한 지역 안에서 사용자의 취향과 가까운 장소로 추천합니다."
-)
+        f"'{place_name}'은/는 '{user_query}' 같은 분위기를 찾는 여행자에게 추천할 만한 {place_type}입니다.\n"
+        f"{top1_reason}\n"
+        f"또한 {top2_label} 분위기도 함께 나타나, 선택한 지역 안에서 비슷한 감성을 느끼고 싶은 여행자에게 잘 어울립니다."
+    )
 
     return reason
 
