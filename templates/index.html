@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YOGIJOGI JP</title>
+
+  <!-- Flask static 폴더의 CSS 연결 -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  
+  <!-- ================= 첫 화면: 지역 선택 페이지 ================= -->
+  <section id="homePage" class="page active">
+
+    <div class="hero">
+      <div class="badge">감성 기반 일본 소도시 추천 서비스</div>
+      <h1>YOGIJOGI JP</h1>
+      <p>
+        유명 관광지보다 나의 취향에 맞는 일본 소도시의 분위기를 먼저 찾고,<br>
+        수집한 장소 DB를 기반으로 지역별 추천 장소 Top 3를 확인해보세요.
+      </p>
+    </div>
+
+    <main class="section">
+      <div class="section-title">
+        <div>
+          <h2>어느 지역으로 떠나고 싶나요?</h2>
+          <p>선정된 8개 지역의 분위기를 읽고 원하는 지역을 선택하세요.</p>
+        </div>
+      </div>
+
+      <!-- JS에서 /api/regions 데이터를 받아 지역 카드를 생성 -->
+      <div id="regionGrid" class="region-grid"></div>
+    </main>
+  </section>
+
+
+  <!-- ================= 두 번째 화면: 분위기 검색 페이지 ================= -->
+  <section id="searchPage" class="page">
+
+    <nav class="topbar">
+      <div class="logo">
+        <span class="logo-mark">요</span>
+        YOGIJOGI JP
+      </div>
+
+      <button class="back-btn" onclick="goHome()">← 지역 다시 선택</button>
+    </nav>
+
+    <main class="search-layout">
+
+      <section class="selected-panel">
+        <div class="selected-visual">
+          <h2 id="selectedRegionName"></h2>
+        </div>
+
+        <div class="selected-info">
+          <p id="selectedRegionDesc"></p>
+          <div id="selectedRegionTags" class="tags"></div>
+        </div>
+      </section>
+
+      <section class="search-panel">
+        <h2>이 지역에서 원하는 분위기를 검색해보세요</h2>
+
+        <p class="guide">
+          예를 들어 “조용한 골목길”, “사진 찍기 좋은 항구”, “전통적인 감성”,
+          “카페가 많은 언덕길”처럼 자연스럽게 입력하면 됩니다.
+        </p>
+
+        <form class="search-form" onsubmit="showResults(event)">
+          <input
+            id="moodInput"
+            type="text"
+            placeholder="예: 조용하고 감성적인 골목길"
+            autocomplete="off"
+          />
+          <button type="submit">Top 3 추천</button>
+        </form>
+
+        <div class="example-list">
+          <button class="example-chip" onclick="fillMood('조용하고 고즈넉한 분위기')">
+            조용하고 고즈넉한 분위기
+          </button>
+
+          <button class="example-chip" onclick="fillMood('사진 찍기 좋은 감성 거리')">
+            사진 찍기 좋은 감성 거리
+          </button>
+
+          <button class="example-chip" onclick="fillMood('바다와 카페가 있는 산책 코스')">
+            바다와 카페가 있는 산책 코스
+          </button>
+
+          <button class="example-chip" onclick="fillMood('전통과 로컬 감성이 있는 곳')">
+            전통과 로컬 감성이 있는 곳
+          </button>
+        </div>
+
+        <div id="results" class="results">
+          <div class="results-head">
+            <h3 id="resultTitle">추천 장소 Top 3</h3>
+          </div>
+
+          <div id="resultList" class="result-list"></div>
+        </div>
+      </section>
+    </main>
+
+    <div class="template-note">
+      현재 추천 결과는 사용자가 업로드한
+      <strong>place_descriptions.csv</strong>와
+      <strong>region_descriptions.csv</strong> 데이터를 기반으로 출력됩니다.
+    </div>
+  </section>
+
+  <!-- Flask static 폴더의 JS 연결 -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
