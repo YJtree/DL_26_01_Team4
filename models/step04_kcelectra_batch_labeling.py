@@ -5,11 +5,8 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 def run_batch_sentence_labeling():
     # 1. 경로 설정
-    # 이전 단계에서 형태소 분석기로 분할한 문장 데이터
     input_data_path = "data/sentence_segmented_data.csv" 
-    # 문장별 라벨링 결과가 저장될 중간 데이터 파일
     output_data_path = "data/sentence_labeled_data.csv" 
-    # 팀에서 직접 파인튜닝을 완료한 모델 폴더 경로
     model_path = "./models/yogijogi_kcelectra_model" 
 
     if not os.path.exists(input_data_path):
@@ -19,49 +16,33 @@ def run_batch_sentence_labeling():
         print(f"[에러] 학습된 모델을 찾을 수 없습니다: {model_path}")
         return
 
-    print("1. 자체 학습 모델 및 토크나이저 로드 중...")
+    print("1. 자체 학습 4분류 모델 및 토크나이저 로드 중...")
+    # 강제 변환 없이, 이미 4분류로 학습된 모델을 그대로 로드합니다.
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     model = AutoModelForSequenceClassification.from_pretrained(model_path)
     
-# [수정 시작] 5개 클래스(0~4) 중 2번 인덱스를 제거하고 4개 클래스로 재매핑
-    with torch.no_grad():
-        # 기존 가중치 저장
-        old_weights = model.classifier.out_proj.weight.clone()
-        old_bias = model.classifier.out_proj.bias.clone()
-        
-        # 2번 인덱스(3번 라벨)를 제외한 나머지 인덱스 리스트
-        new_indices = [0, 1, 3, 4]
-        
-        # 새로운 텐서 생성
-        model.classifier.out_proj.weight = torch.nn.Parameter(old_weights[new_indices])
-        model.classifier.out_proj.bias = torch.nn.Parameter(old_bias[new_indices])
-        model.config.num_labels = 4
-    # [수정 끝]
-
-    # GPU 가용 여부 확인 및 할당
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model.eval()
 
-    print("2. 문장 단위 분할 데이터 로드 중...")
+    print("2. 문장 데이터 읽기...")
     df = pd.read_csv(input_data_path)
-    
-    # 결측치 제거 및 리스트 변환
+    # 결측치 제거
     df = df.dropna(subset=['sentence'])
     texts = df['sentence'].tolist()
 
-    # 라벨 번호 매핑 딕셔너리 (팀의 실제 학습 모델 설정에 맞게 수정 필요)
+    # 확정된 4분류 체계 라벨 맵핑 (이전의 3번이 2번에 통합되었음)
     label_map = {
         0: "1번 (고즈넉/사색)",
         1: "2번 (레트로/빈티지)",
-        2: "4번 (청량/애니메이션)",
-        3: "5번 (아기자기/소박)"
+        2: "3번 (청량/애니메이션)",
+        3: "4번 (아기자기/소박)"
     }
 
     print(f"3. 총 {len(texts)}개 문장에 대한 AI 배치 추론 시작 (사용 장비: {device})...")
     predicted_labels = []
     
-    # 질문자님이 제안해주신 메모리 효율적인 배치(Batch) 처리 도입
+    # 메모리 효율적인 배치(Batch) 처리
     batch_size = 32
     for i in range(0, len(texts), batch_size):
         batch_texts = texts[i:i+batch_size]
@@ -77,25 +58,19 @@ def run_batch_sentence_labeling():
         with torch.no_grad():
             outputs = model(**inputs)
             logits = outputs.logits
-            # 확률이 가장 높은 클래스의 인덱스 추출
+            # 확률이 가장 높은 클래스의 인덱스(0~3) 추출
             preds = torch.argmax(logits, dim=1).cpu().numpy()
             
-            # 인덱스를 텍스트 키워드로 변환하여 저장
+            # 인덱스를 직관적인 텍스트 라벨로 변환하여 리스트에 추가
             predicted_labels.extend([label_map[p] for p in preds])
 
-        # 진행 상황 출력
         if (i + batch_size) % 320 == 0 or (i + batch_size) >= len(texts):
-            print(f"진행도: {min(i + batch_size, len(texts))} / {len(texts)}")
+            print(f"   진행률: {min(i + batch_size, len(texts))}/{len(texts)} 완료")
 
-    # 4. 예측된 라벨을 원본 데이터프레임에 추가
+    print("4. 추론 결과 저장 중...")
     df['sentence_label'] = predicted_labels
-
-    print("4. 문장별 라벨링 결과 저장 중...")
-    os.makedirs(os.path.dirname(output_data_path) or '.', exist_ok=True)
     df.to_csv(output_data_path, index=False, encoding='utf-8-sig')
-
-    print("-" * 30)
-    print(f"라벨링 완료. 결과가 '{output_data_path}'에 저장되었습니다.")
+    print(f"완료: 최종 라벨링 데이터가 저장되었습니다 -> {output_data_path}")
 
 if __name__ == "__main__":
     run_batch_sentence_labeling()

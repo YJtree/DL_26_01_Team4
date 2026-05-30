@@ -25,3 +25,4 @@ __pycache__/
 !data/region_JP_aliases.xlsx
 !data/final_travel_database.csv
 !requirements.txt
+

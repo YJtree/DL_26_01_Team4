@@ -61,14 +61,14 @@ def get_place_reviews(place_id, place_name):
 
 if __name__ == "__main__":
     # 1. 재료 준비 (원하는 단어만 몇 개 던져주면 됨)
-    regions = ["시코쿠", "구마모토", "다카마쓰", "가고시마", "이시가키","가와고","다카야마","하코다테"]
+    regions = ["일본"]
     vibes = ["조용한", "숨은", "로컬", "현지인", "분위기 좋은", "힙한", "혼자여행"]
     places = ["명소", "카페", "식당"]
 
-    # 2. 파이썬이 모든 경우의 수를 곱해서 검색어 자동 생성 (7 x 6 x 5 = 210개)
+    # 2. 파이썬이 모든 경우의 수를 곱해서 검색어 자동 생성 (1 x 6 x 5 = 30개)
     search_queries = [f"{r} {v} {p}" for r, v, p in itertools.product(regions, vibes, places)]
     
-    print(f"총 {len(search_queries)}개의 검색어가 자동 생성되었습니다! (예: {search_queries[0]})")# 🌟 핵심 수정: 전체 210개 중에서 15개를 무작위(랜덤)로 골고루 추출합니다.
+    print(f"총 {len(search_queries)}개의 검색어가 자동 생성되었습니다! (예: {search_queries[0]})")# 수정: 전체 300개 중에서 15개를 무작위(랜덤)로 골고루 추출합니다.
     test_queries = random.sample(search_queries, 15) 
     
     all_reviews = []
