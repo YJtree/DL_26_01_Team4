@@ -42,15 +42,15 @@ set_seed(42)
 # 하이퍼파라미터 세팅
 MODEL_NAME = "beomi/KcELECTRA-base-v2022"
 SAVE_PATH  = "./models/yogijogi_kcelectra_model"
-NUM_LABELS = 4         # model_prep.py에서 5개 라벨을 4개로 통폐합했으므로 4가 맞습니다.
+NUM_LABELS = 4         
 BATCH_SIZE = 16        # 한 번에 GPU에 올라가는 문장 개수
 EPOCHS = 30            # 전체 데이터셋을 반복 학습할 최대 횟수
-LEARNING_RATE = 2e-5   # Pre-trained 언어모델 파인튜닝 시 가장 국룰로 쓰이는 안전한 학습률
+LEARNING_RATE = 2e-5   # Pre-trained 언어모델 파인튜닝 시 가장 많이 쓰이는 안전한 학습률
 WEIGHT_DECAY = 0.01    # L2 정규화 (가중치가 너무 커지는 것을 막아 과적합 방지)
 WARMUP_RATIO = 0.1     # 학습 초반 10% 스텝 동안은 학습률을 서서히 올림 (급격한 가중치 파괴 방지)
-PATIENCE = 7           # 검증 성능이 7에폭 동안 안 오르면 조기 종료 (Early Stopping)
+PATIENCE = 7           # 검증 성능이 7에폭 동안 안 오르면 조기 종료
 GRAD_CLIP = 1.0        # 기울기 폭발(Gradient Exploding)을 막기 위해 기울기 최대치 제한
-LABEL_SMOOTHING = 0.05 # 정답을 1.0이 아닌 0.95로 부드럽게 주어 과도한 확신(Overconfidence) 방지
+LABEL_SMOOTHING = 0.05 # 정답을 1.0이 아닌 0.95로 부드럽게 주어 과도한 확신 방지
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
