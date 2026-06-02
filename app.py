@@ -29,8 +29,8 @@ def clean_label(label):
 label_columns = {
     "label_1번 (고즈넉/사색)_ratio": "1번 (고즈넉/사색)",
     "label_2번 (레트로/빈티지)_ratio": "2번 (레트로/빈티지)",
-    "label_4번 (청량/애니메이션)_ratio": "4번 (청량/바다)",
-    "label_5번 (아기자기/소박)_ratio": "5번 (아기자기/소박)"
+    "label_3번 (청량/애니메이션)_ratio": "3번 (청량/바다)",
+    "label_4번 (아기자기/소박)_ratio": "4번 (아기자기/소박)"
 }
 
 # 지역별 분위기 태그는 place_descriptions.csv의 top1/top2 라벨을 기준으로 자동 생성
@@ -72,7 +72,6 @@ def load_region_data():
 
                 # 전체 평균보다 얼마나 더 높은지 계산
                 distinct_score = city_average - overall_average
-
                 distinct_scores[clean_label(label_name)] = distinct_score
 
             # 전체 평균보다 높은 라벨만 우선 사용
